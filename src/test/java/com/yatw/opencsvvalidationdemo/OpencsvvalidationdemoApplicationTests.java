@@ -24,8 +24,8 @@ class OpencsvvalidationdemoApplicationTests {
 		/**
 		 * Sample file
 		 * ID,Building Name,Country
-		 * ,testBuilding1,
-		 * 12345,testBuilding2,
+		 * 12345,,
+		 * 12345,testBuilding2,USA
 		 *
 		 * Sample validation check non null for every column
 		 * Expectation: csvToBean.getCapturedExceptions() return all errors from the same row, for every row
@@ -37,51 +37,26 @@ class OpencsvvalidationdemoApplicationTests {
 		HeaderColumnNameMappingStrategy<BuildingDTO> strategy = new HeaderColumnNameMappingStrategy<>();
 		strategy.setType(BuildingDTO.class);
 
-		CsvExceptionHandler exceptionHandler = new ExceptionHandlerQueue();
-
-		BeanVerifier<BuildingDTO> verifier = buildingDTO -> {
-
-			try{
-				if (buildingDTO.getId() == null){
-					CsvConstraintViolationException e = new CsvConstraintViolationException("ID is required");
-					exceptionHandler.handleException(e);
-				}
-				if (buildingDTO.getName() == null){
-					CsvConstraintViolationException e = new CsvConstraintViolationException("Name is required");
-					exceptionHandler.handleException(e);
-				}
-				if (buildingDTO.getCountry() == null){
-					CsvConstraintViolationException e = new CsvConstraintViolationException("Country is required");
-					exceptionHandler.handleException(e);
-				}
-			}catch (CsvException e){
-				System.out.println("Error here");
-			}
-
-
-			return true;
-		};
 
 		CsvToBean<BuildingDTO> csvToBean = new CsvToBeanBuilder<BuildingDTO>(reader)
 				.withFieldAsNull(CSVReaderNullFieldIndicator.EMPTY_SEPARATORS)
-				.withVerifyReader(true)
 				.withMappingStrategy(strategy)
-				.withVerifier(verifier)
-				.withExceptionHandler(new ExceptionHandlerQueue())
+				.withVerifier(new CountryVerifier())
+				.withVerifier(new NameVerifier())
+				.withVerifier(null)
 				.withThrowExceptions(false)
 				.build();
 
-		csvToBean.setThrowExceptions(false);
 		List<BuildingDTO> buildings = csvToBean.parse();
 		System.out.println("This is buildings");
 		System.out.println(buildings);
 		List<CsvException> exceptions = csvToBean.getCapturedExceptions();
 		System.out.println("This is exceptions");
 		System.out.println(exceptions);
-		//This is buildings
-		//[BuildingDTO(id=null, name=testBuilding1, country=null), BuildingDTO(id=null, name=testBuilding2, country=null)]
-		//This is exceptions
-		//[]
+//		This is buildings
+//				[BuildingDTO(id=null, name=testBuilding2, country=USA)]
+//		This is exceptions
+//				[com.opencsv.exceptions.CsvConstraintViolationException: Country cannot be null]
 		reader.close();
 	}
 
